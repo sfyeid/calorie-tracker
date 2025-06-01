@@ -2,320 +2,266 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import Link from "next/link"
 import {
   Container,
-  Box,
-  Typography,
+  Paper,
   TextField,
   Button,
-  Paper,
-  InputAdornment,
-  IconButton,
-  Divider,
+  Typography,
+  Box,
   Alert,
-  CircularProgress,
-  FormControlLabel,
-  Checkbox,
+  Link as MuiLink,
+  Divider,
   Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material"
-import { Visibility, VisibilityOff, Email, Lock, Person } from "@mui/icons-material"
-import { useForm, Controller } from "react-hook-form"
-import { yupResolver } from "@hookform/resolvers/yup"
-import * as yup from "yup"
+import { Restaurant } from "@mui/icons-material"
+import Link from "next/link"
+import { useForm } from "react-hook-form"
 
-// Схема валидации
-const schema = yup.object({
-  name: yup.string().required("Имя обязательно"),
-  email: yup.string().email("Введите корректный email").required("Email обязателен"),
-  password: yup.string().required("Пароль обязателен").min(6, "Пароль должен содержать минимум 6 символов"),
-  confirmPassword: yup
-    .string()
-    .oneOf([yup.ref("password")], "Пароли должны совпадать")
-    .required("Подтверждение пароля обязательно"),
-  agreeTerms: yup.boolean().oneOf([true], "Необходимо согласиться с условиями"),
-})
-
-type FormData = {
-  name: string
+interface RegisterForm {
+  firstName: string
+  lastName: string
   email: string
   password: string
   confirmPassword: string
-  agreeTerms: boolean
+  age: number
+  gender: string
+  height: number
+  weight: number
+  activityLevel: string
 }
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const {
-    control,
+    register,
     handleSubmit,
+    watch,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      name: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-      agreeTerms: false,
-    },
-  })
+  } = useForm<RegisterForm>()
 
-  const onSubmit = async (data: FormData) => {
+  const password = watch("password")
+
+  const onSubmit = async (data: RegisterForm) => {
     setLoading(true)
-    setError(null)
+    setError("")
 
     try {
-      // Имитация запроса к API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Сохраняем токен в localStorage (в реальном приложении использовали бы более безопасный способ)
-      localStorage.setItem("authToken", "fake-jwt-token")
-      localStorage.setItem(
-        "user",
-        JSON.stringify({
-          email: data.email,
-          name: data.name,
-          role: "user",
-        }),
-      )
-
-      // Перенаправляем на дашборд
-      router.push("/dashboard")
+      // Mock registration
+      console.log("Registration data:", data)
+      localStorage.setItem("authToken", "mock-jwt-token")
+      router.push("/")
     } catch (err) {
-      setError("Произошла ошибка при регистрации. Попробуйте позже.")
-      console.error(err)
+      setError("Произошла ошибка при регистрации")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Container maxWidth="sm">
+    <Container component="main" maxWidth="md">
       <Box
         sx={{
+          minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
           justifyContent: "center",
-          minHeight: "100vh",
-          paddingY: 4,
+          py: 4,
         }}
       >
         <Paper
           elevation={3}
           sx={{
-            padding: 4,
-            width: "100%",
-            borderRadius: 2,
+            p: 4,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            borderRadius: 3,
           }}
         >
-          <Typography variant="h4" component="h1" align="center" gutterBottom>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+            <Restaurant sx={{ fontSize: 40, color: "primary.main", mr: 1 }} />
+            <Typography component="h1" variant="h4" sx={{ fontWeight: 600 }}>
+              CalorieTracker
+            </Typography>
+          </Box>
+
+          <Typography component="h2" variant="h5" sx={{ mb: 3, textAlign: "center" }}>
             Регистрация
           </Typography>
 
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ marginBottom: 3 }}>
-            Создайте аккаунт для доступа к приложению
-          </Typography>
-
           {error && (
-            <Alert severity="error" sx={{ marginBottom: 2 }}>
+            <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
               {error}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              name="name"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Имя"
-                  variant="outlined"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.name}
-                  helperText={errors.name?.message}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Person color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={loading}
-                />
-              )}
-            />
-
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Email"
-                  variant="outlined"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Email color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={loading}
-                />
-              )}
-            />
-
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ width: "100%" }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
-                <Controller
-                  name="password"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Пароль"
-                      type={showPassword ? "text" : "password"}
-                      variant="outlined"
-                      fullWidth
-                      margin="normal"
-                      error={!!errors.password}
-                      helperText={errors.password?.message}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock color="action" />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle password visibility"
-                              onClick={() => setShowPassword(!showPassword)}
-                              edge="end"
-                            >
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                      disabled={loading}
-                    />
-                  )}
+                <TextField
+                  required
+                  fullWidth
+                  label="Имя"
+                  autoFocus
+                  {...register("firstName", { required: "Имя обязательно" })}
+                  error={!!errors.firstName}
+                  helperText={errors.firstName?.message}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
-                <Controller
-                  name="confirmPassword"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      label="Подтвердите пароль"
-                      type={showConfirmPassword ? "text" : "password"}
-                      variant="outlined"
-                      fullWidth
-                      margin="normal"
-                      error={!!errors.confirmPassword}
-                      helperText={errors.confirmPassword?.message}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Lock color="action" />
-                          </InputAdornment>
-                        ),
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton
-                              aria-label="toggle confirm password visibility"
-                              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              edge="end"
-                            >
-                              {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                      disabled={loading}
-                    />
-                  )}
+                <TextField
+                  required
+                  fullWidth
+                  label="Фамилия"
+                  {...register("lastName", { required: "Фамилия обязательна" })}
+                  error={!!errors.lastName}
+                  helperText={errors.lastName?.message}
                 />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Email"
+                  type="email"
+                  {...register("email", {
+                    required: "Email обязателен",
+                    pattern: {
+                      value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                      message: "Неверный формат email",
+                    },
+                  })}
+                  error={!!errors.email}
+                  helperText={errors.email?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Пароль"
+                  type="password"
+                  {...register("password", {
+                    required: "Пароль обязателен",
+                    minLength: {
+                      value: 6,
+                      message: "Пароль должен содержать минимум 6 символов",
+                    },
+                  })}
+                  error={!!errors.password}
+                  helperText={errors.password?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Подтвердите пароль"
+                  type="password"
+                  {...register("confirmPassword", {
+                    required: "Подтверждение пароля обязательно",
+                    validate: (value) => value === password || "Пароли не совпадают",
+                  })}
+                  error={!!errors.confirmPassword}
+                  helperText={errors.confirmPassword?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Возраст"
+                  type="number"
+                  {...register("age", {
+                    required: "Возраст обязателен",
+                    min: { value: 16, message: "Минимальный возраст 16 лет" },
+                    max: { value: 100, message: "Максимальный возраст 100 лет" },
+                  })}
+                  error={!!errors.age}
+                  helperText={errors.age?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <FormControl fullWidth required>
+                  <InputLabel>Пол</InputLabel>
+                  <Select label="Пол" {...register("gender", { required: "Пол обязателен" })} error={!!errors.gender}>
+                    <MenuItem value="male">Мужской</MenuItem>
+                    <MenuItem value="female">Женский</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Рост (см)"
+                  type="number"
+                  {...register("height", {
+                    required: "Рост обязателен",
+                    min: { value: 100, message: "Минимальный рост 100 см" },
+                    max: { value: 250, message: "Максимальный рост 250 см" },
+                  })}
+                  error={!!errors.height}
+                  helperText={errors.height?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Вес (кг)"
+                  type="number"
+                  {...register("weight", {
+                    required: "Вес обязателен",
+                    min: { value: 30, message: "Минимальный вес 30 кг" },
+                    max: { value: 300, message: "Максимальный вес 300 кг" },
+                  })}
+                  error={!!errors.weight}
+                  helperText={errors.weight?.message}
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Уровень активности</InputLabel>
+                  <Select
+                    label="Уровень активности"
+                    {...register("activityLevel", { required: "Уровень активности обязателен" })}
+                    error={!!errors.activityLevel}
+                  >
+                    <MenuItem value="sedentary">Малоподвижный</MenuItem>
+                    <MenuItem value="light">Легкая активность</MenuItem>
+                    <MenuItem value="moderate">Умеренная активность</MenuItem>
+                    <MenuItem value="active">Высокая активность</MenuItem>
+                    <MenuItem value="very_active">Очень высокая активность</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
             </Grid>
 
-            <Box sx={{ marginTop: 2 }}>
-              <Controller
-                name="agreeTerms"
-                control={control}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={<Checkbox {...field} color="primary" />}
-                    label={
-                      <Typography variant="body2">
-                        Я согласен с{" "}
-                        <Link href="/terms" style={{ color: "#2196f3" }}>
-                          условиями использования
-                        </Link>{" "}
-                        и{" "}
-                        <Link href="/privacy" style={{ color: "#2196f3" }}>
-                          политикой конфиденциальности
-                        </Link>
-                      </Typography>
-                    }
-                  />
-                )}
-              />
-              {errors.agreeTerms && (
-                <Typography variant="caption" color="error">
-                  {errors.agreeTerms.message}
-                </Typography>
-              )}
-            </Box>
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
-              disabled={loading}
-              sx={{ marginTop: 3, marginBottom: 2, paddingY: 1.5 }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : "Зарегистрироваться"}
+            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2, py: 1.5 }} disabled={loading}>
+              {loading ? "Регистрация..." : "Зарегистрироваться"}
             </Button>
 
-            <Divider sx={{ marginY: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                или
-              </Typography>
-            </Divider>
+            <Divider sx={{ my: 2 }} />
 
-            <Box sx={{ textAlign: "center", marginTop: 2 }}>
-              <Typography variant="body2">
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="body2" color="text.secondary">
                 Уже есть аккаунт?{" "}
-                <Link href="/auth/login" style={{ color: "#2196f3", textDecoration: "none" }}>
+                <MuiLink component={Link} href="/auth/login" underline="hover">
                   Войти
-                </Link>
+                </MuiLink>
               </Typography>
             </Box>
-          </form>
+          </Box>
         </Paper>
-
-        <Button variant="text" color="inherit" onClick={() => router.push("/")} sx={{ marginTop: 2 }}>
-          Вернуться на главную
-        </Button>
       </Box>
     </Container>
   )

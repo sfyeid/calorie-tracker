@@ -1,408 +1,464 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import {
   Container,
-  Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
   TextField,
   Button,
+  Box,
   Avatar,
   Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Switch,
-  FormControlLabel,
-  AppBar,
-  Toolbar,
-  IconButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   Alert,
+  Chip,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material"
-import {
-  ArrowBack,
-  Person,
-  Email,
-  Phone,
-  Cake,
-  Height,
-  FitnessCenter,
-  LocalFireDepartment,
-  Notifications,
-  Security,
-  Palette,
-  Language,
-} from "@mui/icons-material"
+import { Person, Edit, Save, Calculate } from "@mui/icons-material"
+import { useForm } from "react-hook-form"
+
+interface ProfileForm {
+  firstName: string
+  lastName: string
+  email: string
+  age: number
+  gender: string
+  height: number
+  weight: number
+  activityLevel: string
+  goal: string
+}
 
 export default function ProfilePage() {
-  const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"))
 
-  const [profileData, setProfileData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    age: "",
-    height: "",
-    weight: "",
-    activityLevel: "",
-    goals: {
-      calories: 2000,
-      protein: 150,
-      fat: 67,
-      carbs: 250,
-    },
-    settings: {
-      notifications: true,
-      darkMode: false,
-      language: "ru",
+  const [editMode, setEditMode] = useState(false)
+  const [success, setSuccess] = useState("")
+
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<ProfileForm>({
+    defaultValues: {
+      firstName: "Иван",
+      lastName: "Петров",
+      email: "user@example.com",
+      age: 30,
+      gender: "male",
+      height: 180,
+      weight: 75,
+      activityLevel: "moderate",
+      goal: "maintain",
     },
   })
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user")
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
-      setUser(parsedUser)
-      setProfileData({
-        ...profileData,
-        name: parsedUser.name || "",
-        email: parsedUser.email || "",
-      })
+  const watchedValues = watch()
+
+  // Расчет базового метаболизма по формуле Миффлина-Сан Жеора
+  const calculateBMR = () => {
+    const { weight, height, age, gender } = watchedValues
+    if (!weight || !height || !age) return 0
+
+    if (gender === "male") {
+      return 10 * weight + 6.25 * height - 5 * age + 5
+    } else {
+      return 10 * weight + 6.25 * height - 5 * age - 161
     }
-  }, [])
-
-  const handleSave = () => {
-    // Сохранение данных профиля
-    const updatedUser = {
-      ...user,
-      name: profileData.name,
-      email: profileData.email,
-    }
-
-    localStorage.setItem("user", JSON.stringify(updatedUser))
-    setUser(updatedUser)
-    setIsEditing(false)
-    setShowSuccess(true)
-
-    setTimeout(() => setShowSuccess(false), 3000)
   }
 
-  const handleSettingChange = (setting: string, value: boolean) => {
-    setProfileData({
-      ...profileData,
-      settings: {
-        ...profileData.settings,
-        [setting]: value,
-      },
-    })
+  // Расчет общего расхода калорий
+  const calculateTDEE = () => {
+    const bmr = calculateBMR()
+    const activityMultipliers = {
+      sedentary: 1.2,
+      light: 1.375,
+      moderate: 1.55,
+      active: 1.725,
+      very_active: 1.9,
+    }
+    return Math.round(bmr * activityMultipliers[watchedValues.activityLevel as keyof typeof activityMultipliers])
+  }
+
+  // Расчет целевых калорий в зависимости от цели
+  const calculateTargetCalories = () => {
+    const tdee = calculateTDEE()
+    const goalAdjustments = {
+      lose: -500, // дефицит 500 ккал для похудения
+      maintain: 0, // поддержание веса
+      gain: 300, // профицит 300 ккал для набора массы
+    }
+    return tdee + goalAdjustments[watchedValues.goal as keyof typeof goalAdjustments]
+  }
+
+  // Расчет макронутриентов
+  const calculateMacros = () => {
+    const targetCalories = calculateTargetCalories()
+    return {
+      protein: Math.round((targetCalories * 0.25) / 4), // 25% от калорий
+      carbs: Math.round((targetCalories * 0.45) / 4), // 45% от калорий
+      fat: Math.round((targetCalories * 0.3) / 9), // 30% от калорий
+    }
+  }
+
+  const onSubmit = (data: ProfileForm) => {
+    console.log("Profile updated:", data)
+    setEditMode(false)
+    setSuccess("Профиль успешно обновлен!")
+    setTimeout(() => setSuccess(""), 3000)
+  }
+
+  const targetCalories = calculateTargetCalories()
+  const macros = calculateMacros()
+
+  const activityLevels = {
+    sedentary: "Малоподвижный",
+    light: "Легкая активность",
+    moderate: "Умеренная активность",
+    active: "Высокая активность",
+    very_active: "Очень высокая активность",
+  }
+
+  const goals = {
+    lose: "Похудение",
+    maintain: "Поддержание веса",
+    gain: "Набор массы",
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={() => router.push("/dashboard")}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Профиль пользователя
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <Container
+      maxWidth="xl"
+      sx={{
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2, md: 3 },
+      }}
+    >
+      <Typography
+        variant="h4"
+        component="h1"
+        gutterBottom
+        sx={{
+          mb: { xs: 2, sm: 3, md: 4 },
+          fontWeight: 600,
+          fontSize: {
+            xs: "1.5rem",
+            sm: "1.75rem",
+            md: "2rem",
+            lg: "2.125rem",
+          },
+        }}
+      >
+        Профиль пользователя
+      </Typography>
 
-      <Container maxWidth="lg" sx={{ marginTop: 4, marginBottom: 4 }}>
-        {showSuccess && (
-          <Alert severity="success" sx={{ marginBottom: 3 }}>
-            Профиль успешно обновлен!
-          </Alert>
-        )}
+      {success && (
+        <Alert severity="success" sx={{ mb: { xs: 2, sm: 3 } }}>
+          {success}
+        </Alert>
+      )}
 
-        <Grid container spacing={3}>
-          {/* Основная информация */}
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ padding: 3, borderRadius: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 3 }}>
-                <Typography variant="h6">Личная информация</Typography>
+      <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+        {/* Personal Information */}
+        <Grid item xs={12} lg={8}>
+          <Card>
+            <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  mb: { xs: 2, sm: 3 },
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: { xs: 2, sm: 0 },
+                }}
+              >
+                <Typography variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}>
+                  Личная информация
+                </Typography>
                 <Button
-                  variant={isEditing ? "contained" : "outlined"}
-                  onClick={() => (isEditing ? handleSave() : setIsEditing(true))}
+                  variant={editMode ? "contained" : "outlined"}
+                  startIcon={editMode ? <Save /> : <Edit />}
+                  onClick={() => {
+                    if (editMode) {
+                      handleSubmit(onSubmit)()
+                    } else {
+                      setEditMode(true)
+                    }
+                  }}
+                  sx={{
+                    width: { xs: "100%", sm: "auto" },
+                    fontSize: { xs: "0.875rem", sm: "1rem" },
+                    py: { xs: 1, sm: 1.5 },
+                  }}
                 >
-                  {isEditing ? "Сохранить" : "Редактировать"}
+                  {editMode ? "Сохранить" : "Редактировать"}
                 </Button>
               </Box>
 
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Имя"
-                    value={profileData.name}
-                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                    fullWidth
-                    disabled={!isEditing}
-                    InputProps={{
-                      startAdornment: <Person sx={{ marginRight: 1, color: "action.active" }} />,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Email"
-                    value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                    fullWidth
-                    disabled={!isEditing}
-                    InputProps={{
-                      startAdornment: <Email sx={{ marginRight: 1, color: "action.active" }} />,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Телефон"
-                    value={profileData.phone}
-                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                    fullWidth
-                    disabled={!isEditing}
-                    InputProps={{
-                      startAdornment: <Phone sx={{ marginRight: 1, color: "action.active" }} />,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Возраст"
-                    value={profileData.age}
-                    onChange={(e) => setProfileData({ ...profileData, age: e.target.value })}
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      startAdornment: <Cake sx={{ marginRight: 1, color: "action.active" }} />,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Рост (см)"
-                    value={profileData.height}
-                    onChange={(e) => setProfileData({ ...profileData, height: e.target.value })}
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      startAdornment: <Height sx={{ marginRight: 1, color: "action.active" }} />,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Вес (кг)"
-                    value={profileData.weight}
-                    onChange={(e) => setProfileData({ ...profileData, weight: e.target.value })}
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      startAdornment: <FitnessCenter sx={{ marginRight: 1, color: "action.active" }} />,
-                    }}
-                  />
-                </Grid>
-              </Grid>
-
-              <Divider sx={{ marginY: 3 }} />
-
-              <Typography variant="h6" gutterBottom>
-                Дневные цели
-              </Typography>
-
-              <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Калории"
-                    value={profileData.goals.calories}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        goals: { ...profileData.goals, calories: Number(e.target.value) },
-                      })
-                    }
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      startAdornment: <LocalFireDepartment sx={{ marginRight: 1, color: "action.active" }} />,
-                      endAdornment: <Typography variant="body2">ккал</Typography>,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Белки"
-                    value={profileData.goals.protein}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        goals: { ...profileData.goals, protein: Number(e.target.value) },
-                      })
-                    }
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      endAdornment: <Typography variant="body2">г</Typography>,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Жиры"
-                    value={profileData.goals.fat}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        goals: { ...profileData.goals, fat: Number(e.target.value) },
-                      })
-                    }
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      endAdornment: <Typography variant="body2">г</Typography>,
-                    }}
-                  />
-                </Grid>
-
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    label="Углеводы"
-                    value={profileData.goals.carbs}
-                    onChange={(e) =>
-                      setProfileData({
-                        ...profileData,
-                        goals: { ...profileData.goals, carbs: Number(e.target.value) },
-                      })
-                    }
-                    fullWidth
-                    disabled={!isEditing}
-                    type="number"
-                    InputProps={{
-                      endAdornment: <Typography variant="body2">г</Typography>,
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Paper>
-          </Grid>
-
-          {/* Боковая панель */}
-          <Grid item xs={12} md={4}>
-            {/* Аватар и основная информация */}
-            <Card sx={{ marginBottom: 3, borderRadius: 2 }}>
-              <CardContent sx={{ textAlign: "center" }}>
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    margin: "0 auto 16px",
-                    backgroundColor: "primary.main",
-                    fontSize: 32,
-                  }}
-                >
-                  {user?.name?.charAt(0) || "U"}
-                </Avatar>
-                <Typography variant="h6" gutterBottom>
-                  {user?.name || "Пользователь"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {user?.email}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block" sx={{ marginTop: 1 }}>
-                  Роль: {user?.role === "user" ? "Пользователь" : "Администратор"}
-                </Typography>
-              </CardContent>
-            </Card>
-
-            {/* Настройки */}
-            <Card sx={{ borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Настройки
-                </Typography>
-
-                <List>
-                  <ListItem>
-                    <ListItemIcon>
-                      <Notifications />
-                    </ListItemIcon>
-                    <ListItemText primary="Уведомления" secondary="Получать push-уведомления" />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={profileData.settings.notifications}
-                          onChange={(e) => handleSettingChange("notifications", e.target.checked)}
-                        />
-                      }
-                      label=""
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Имя"
+                      disabled={!editMode}
+                      size={isMobile ? "small" : "medium"}
+                      {...register("firstName", { required: "Имя обязательно" })}
+                      error={!!errors.firstName}
+                      helperText={errors.firstName?.message}
                     />
-                  </ListItem>
-
-                  <ListItem>
-                    <ListItemIcon>
-                      <Palette />
-                    </ListItemIcon>
-                    <ListItemText primary="Темная тема" secondary="Использовать темное оформление" />
-                    <FormControlLabel
-                      control={
-                        <Switch
-                          checked={profileData.settings.darkMode}
-                          onChange={(e) => handleSettingChange("darkMode", e.target.checked)}
-                        />
-                      }
-                      label=""
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Фамилия"
+                      disabled={!editMode}
+                      size={isMobile ? "small" : "medium"}
+                      {...register("lastName", { required: "Фамилия обязательна" })}
+                      error={!!errors.lastName}
+                      helperText={errors.lastName?.message}
                     />
-                  </ListItem>
-
-                  <ListItem>
-                    <ListItemIcon>
-                      <Language />
-                    </ListItemIcon>
-                    <ListItemText primary="Язык" secondary="Русский" />
-                  </ListItem>
-
-                  <ListItem>
-                    <ListItemIcon>
-                      <Security />
-                    </ListItemIcon>
-                    <ListItemText primary="Безопасность" secondary="Изменить пароль" />
-                  </ListItem>
-                </List>
-
-                <Divider sx={{ marginY: 2 }} />
-
-                <Button variant="outlined" color="error" fullWidth>
-                  Удалить аккаунт
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField
+                      fullWidth
+                      label="Email"
+                      type="email"
+                      disabled={!editMode}
+                      size={isMobile ? "small" : "medium"}
+                      {...register("email", { required: "Email обязателен" })}
+                      error={!!errors.email}
+                      helperText={errors.email?.message}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label="Возраст"
+                      type="number"
+                      disabled={!editMode}
+                      size={isMobile ? "small" : "medium"}
+                      {...register("age", { required: "Возраст обязателен" })}
+                      error={!!errors.age}
+                      helperText={errors.age?.message}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <FormControl fullWidth disabled={!editMode} size={isMobile ? "small" : "medium"}>
+                      <InputLabel>Пол</InputLabel>
+                      <Select
+                        label="Пол"
+                        {...register("gender", { required: "Пол обязателен" })}
+                        error={!!errors.gender}
+                      >
+                        <MenuItem value="male">Мужской</MenuItem>
+                        <MenuItem value="female">Женский</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      fullWidth
+                      label="Рост (см)"
+                      type="number"
+                      disabled={!editMode}
+                      size={isMobile ? "small" : "medium"}
+                      {...register("height", { required: "Рост обязателен" })}
+                      error={!!errors.height}
+                      helperText={errors.height?.message}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Вес (кг)"
+                      type="number"
+                      disabled={!editMode}
+                      size={isMobile ? "small" : "medium"}
+                      {...register("weight", { required: "Вес обязателен" })}
+                      error={!!errors.weight}
+                      helperText={errors.weight?.message}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormControl fullWidth disabled={!editMode} size={isMobile ? "small" : "medium"}>
+                      <InputLabel>Уровень активности</InputLabel>
+                      <Select
+                        label="Уровень активности"
+                        {...register("activityLevel", { required: "Уровень активности обязателен" })}
+                        error={!!errors.activityLevel}
+                      >
+                        {Object.entries(activityLevels).map(([key, value]) => (
+                          <MenuItem key={key} value={key}>
+                            {value}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <FormControl fullWidth disabled={!editMode} size={isMobile ? "small" : "medium"}>
+                      <InputLabel>Цель</InputLabel>
+                      <Select
+                        label="Цель"
+                        {...register("goal", { required: "Цель обязательна" })}
+                        error={!!errors.goal}
+                      >
+                        {Object.entries(goals).map(([key, value]) => (
+                          <MenuItem key={key} value={key}>
+                            {value}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                </Grid>
+              </form>
+            </CardContent>
+          </Card>
         </Grid>
-      </Container>
-    </Box>
+
+        {/* Profile Summary */}
+        <Grid item xs={12} lg={4}>
+          <Card sx={{ mb: { xs: 2, sm: 3 } }}>
+            <CardContent sx={{ textAlign: "center", p: { xs: 2, sm: 3, md: 4 } }}>
+              <Avatar
+                sx={{
+                  width: { xs: 60, sm: 80, md: 100 },
+                  height: { xs: 60, sm: 80, md: 100 },
+                  mx: "auto",
+                  mb: 2,
+                  bgcolor: "primary.main",
+                }}
+              >
+                <Person sx={{ fontSize: { xs: 30, sm: 40, md: 50 } }} />
+              </Avatar>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" },
+                  mb: 1,
+                }}
+              >
+                {watchedValues.firstName} {watchedValues.lastName}
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  wordBreak: "break-word",
+                  mb: 2,
+                }}
+              >
+                {watchedValues.email}
+              </Typography>
+              <Chip
+                label={goals[watchedValues.goal as keyof typeof goals]}
+                color="primary"
+                sx={{
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  height: { xs: 28, sm: 32 },
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          {/* Calculated Goals */}
+          <Card>
+            <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: { xs: 2, sm: 3 } }}>
+                <Calculate sx={{ mr: 1, color: "primary.main", fontSize: { xs: 20, sm: 24 } }} />
+                <Typography variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}>
+                  Рассчитанные цели
+                </Typography>
+              </Box>
+
+              <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                  Базовый метаболизм (BMR)
+                </Typography>
+                <Typography variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}>
+                  {Math.round(calculateBMR())} ккал
+                </Typography>
+              </Box>
+
+              <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
+
+              <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                  Общий расход калорий (TDEE)
+                </Typography>
+                <Typography variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}>
+                  {calculateTDEE()} ккал
+                </Typography>
+              </Box>
+
+              <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
+
+              <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                  Целевые калории
+                </Typography>
+                <Typography
+                  variant="h6"
+                  color="primary.main"
+                  sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}
+                >
+                  {targetCalories} ккал
+                </Typography>
+              </Box>
+
+              <Divider sx={{ my: { xs: 1.5, sm: 2 } }} />
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                gutterBottom
+                sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+              >
+                Макронутриенты:
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 0.5, sm: 1 } }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    Белки:
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    {macros.protein}г
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    Углеводы:
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    {macros.carbs}г
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <Typography variant="body2" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    Жиры:
+                  </Typography>
+                  <Typography variant="body2" fontWeight="bold" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                    {macros.fat}г
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Container>
   )
 }

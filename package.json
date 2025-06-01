@@ -6,37 +6,25 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d build"
+    "lint": "next lint"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.4",
-    "@mui/icons-material": "^5.15.12",
-    "@mui/material": "^5.15.12",
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "@types/react-dom": "^18",
-    "autoprefixer": "^10.0.1",
-    "class-variance-authority": "^0.7.0",
-    "clsx": "^2.0.0",
-    "date-fns": "^3.3.1",
-    "lucide-react": "^0.468.0",
-    "next": "14.1.0",
-    "postcss": "^8",
+    "@emotion/react": "^11.11.1",
+    "@emotion/styled": "^11.11.0",
+    "@mui/icons-material": "^5.14.19",
+    "@mui/material": "^5.14.20",
+    "next": "14.0.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recharts": "^2.12.2",
-    "tailwind-merge": "^2.0.0",
-    "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "react-hook-form": "^7.48.2",
+    "recharts": "^2.8.0"
   },
   "devDependencies": {
-    "eslint": "^8",
-    "eslint-config-next": "14.1.0",
-    "gh-pages": "^6.3.0"
-  },
-  "homepage": "https://sfyeidbxhxdhs.github.io/calorie-tracker"
-
+    "@types/node": "^20.9.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "eslint": "^8.53.0",
+    "eslint-config-next": "14.0.3",
+    "typescript": "^5.2.2"
+  }
 }

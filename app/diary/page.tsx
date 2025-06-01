@@ -1,459 +1,759 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import {
   Container,
-  Box,
   Typography,
-  Paper,
   Grid,
   Card,
   CardContent,
   Button,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Fab,
+  Box,
+  Chip,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
+  FormControl,
+  InputLabel,
+  Select,
   MenuItem,
-  Chip,
-  IconButton,
-  AppBar,
-  Toolbar,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemSecondaryAction,
+  Tabs,
+  Tab,
+  InputAdornment,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material"
-import {
-  Restaurant,
-  Add,
-  Edit,
-  Delete,
-  ArrowBack,
-  CalendarToday,
-  LocalFireDepartment,
-  FitnessCenter,
-  Opacity,
-  Grain,
-} from "@mui/icons-material"
-import { format, addDays, subDays } from "date-fns"
-import { ru } from "date-fns/locale"
+import { Add, ChevronLeft, ChevronRight, Delete, Restaurant, AccessTime, Search } from "@mui/icons-material"
+import { useForm } from "react-hook-form"
 
-interface Food {
-  id: number
+interface FoodEntry {
+  id: string
   name: string
-  amount: number
   calories: number
   protein: number
-  fat: number
   carbs: number
+  fat: number
+  amount: number
+  unit: string
+  time: string
+  meal: string
 }
 
-interface Meal {
-  id: number
-  type: string
+interface AddFoodForm {
   name: string
-  time: string
-  foods: Food[]
-  totalCalories: number
-  totalProtein: number
-  totalFat: number
-  totalCarbs: number
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  amount: number
+  unit: string
+  meal: string
+}
+
+interface Product {
+  id: string
+  name: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  isFavorite: boolean
+  isCustom: boolean
 }
 
 export default function DiaryPage() {
-  const router = useRouter()
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [meals, setMeals] = useState<Meal[]>([])
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"))
+
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const [openDialog, setOpenDialog] = useState(false)
-  const [selectedMealType, setSelectedMealType] = useState("")
-  const [newMealName, setNewMealName] = useState("")
-  const [newMealTime, setNewMealTime] = useState("")
+  const [dialogTab, setDialogTab] = useState(0)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedMeal, setSelectedMeal] = useState("breakfast")
 
-  const mealTypes = [
-    { value: "breakfast", label: "Завтрак", defaultTime: "08:00" },
-    { value: "lunch", label: "Обед", defaultTime: "13:00" },
-    { value: "dinner", label: "Ужин", defaultTime: "19:00" },
-    { value: "snack", label: "Перекус", defaultTime: "16:00" },
-  ]
+  const [entries, setEntries] = useState<FoodEntry[]>([
+    {
+      id: "1",
+      name: "Овсяная каша",
+      calories: 350,
+      protein: 12,
+      carbs: 60,
+      fat: 8,
+      amount: 100,
+      unit: "г",
+      time: "08:30",
+      meal: "breakfast",
+    },
+    {
+      id: "2",
+      name: "Куриная грудка",
+      calories: 450,
+      protein: 85,
+      carbs: 0,
+      fat: 10,
+      amount: 200,
+      unit: "г",
+      time: "13:00",
+      meal: "lunch",
+    },
+  ])
 
-  // Загрузка данных дневника
-  useEffect(() => {
-    const loadDiaryData = () => {
-      // Имитация загрузки данных
-      const mockMeals: Meal[] = [
-        {
-          id: 1,
-          type: "breakfast",
-          name: "Завтрак",
-          time: "08:30",
-          foods: [
-            {
-              id: 1,
-              name: "Овсянка с фруктами",
-              amount: 200,
-              calories: 320,
-              protein: 12,
-              fat: 6,
-              carbs: 58,
-            },
-            {
-              id: 2,
-              name: "Греческий йогурт",
-              amount: 150,
-              calories: 100,
-              protein: 15,
-              fat: 0,
-              carbs: 6,
-            },
-          ],
-          totalCalories: 420,
-          totalProtein: 27,
-          totalFat: 6,
-          totalCarbs: 64,
-        },
-        {
-          id: 2,
-          type: "lunch",
-          name: "Обед",
-          time: "13:00",
-          foods: [
-            {
-              id: 3,
-              name: "Куриная грудка",
-              amount: 150,
-              calories: 248,
-              protein: 46,
-              fat: 5,
-              carbs: 0,
-            },
-            {
-              id: 4,
-              name: "Рис с овощами",
-              amount: 200,
-              calories: 260,
-              protein: 6,
-              fat: 1,
-              carbs: 54,
-            },
-            {
-              id: 5,
-              name: "Салат овощной",
-              amount: 100,
-              calories: 25,
-              protein: 1,
-              fat: 0,
-              carbs: 5,
-            },
-          ],
-          totalCalories: 533,
-          totalProtein: 53,
-          totalFat: 6,
-          totalCarbs: 59,
-        },
-      ]
-      setMeals(mockMeals)
+  // Mock products from database
+  const [products] = useState<Product[]>([
+    {
+      id: "1",
+      name: "Куриная грудка",
+      calories: 165,
+      protein: 31,
+      carbs: 0,
+      fat: 3.6,
+      isFavorite: true,
+      isCustom: false,
+    },
+    {
+      id: "2",
+      name: "Овсяная каша",
+      calories: 389,
+      protein: 16.9,
+      carbs: 66.3,
+      fat: 6.9,
+      isFavorite: false,
+      isCustom: false,
+    },
+    {
+      id: "3",
+      name: "Творог 5%",
+      calories: 121,
+      protein: 16.7,
+      carbs: 1.3,
+      fat: 5,
+      isFavorite: true,
+      isCustom: false,
+    },
+    {
+      id: "4",
+      name: "Банан",
+      calories: 89,
+      protein: 1.1,
+      carbs: 22.8,
+      fat: 0.3,
+      isFavorite: false,
+      isCustom: false,
+    },
+  ])
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    formState: { errors },
+  } = useForm<AddFoodForm>()
+
+  const formatDate = (date: Date) => {
+    if (isMobile) {
+      return date.toLocaleDateString("ru-RU", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
     }
+    return date.toLocaleDateString("ru-RU", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    })
+  }
 
-    loadDiaryData()
-  }, [currentDate])
+  const changeDate = (days: number) => {
+    const newDate = new Date(selectedDate)
+    newDate.setDate(newDate.getDate() + days)
+    setSelectedDate(newDate)
+  }
 
-  const handleAddMeal = () => {
-    if (!selectedMealType || !newMealName || !newMealTime) return
-
-    const mealTypeInfo = mealTypes.find((type) => type.value === selectedMealType)
-    const newMeal: Meal = {
-      id: Date.now(),
-      type: selectedMealType,
-      name: newMealName,
-      time: newMealTime,
-      foods: [],
-      totalCalories: 0,
-      totalProtein: 0,
-      totalFat: 0,
-      totalCarbs: 0,
+  const onSubmit = (data: AddFoodForm) => {
+    const newEntry: FoodEntry = {
+      id: Date.now().toString(),
+      ...data,
+      time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
     }
-
-    setMeals([...meals, newMeal])
+    setEntries([...entries, newEntry])
     setOpenDialog(false)
-    setSelectedMealType("")
-    setNewMealName("")
-    setNewMealTime("")
+    reset()
+    setDialogTab(0)
+    setSearchTerm("")
   }
 
-  const handleMealTypeChange = (type: string) => {
-    setSelectedMealType(type)
-    const mealTypeInfo = mealTypes.find((t) => t.value === type)
-    if (mealTypeInfo) {
-      setNewMealName(mealTypeInfo.label)
-      setNewMealTime(mealTypeInfo.defaultTime)
+  const addProductFromDatabase = (product: Product, amount: number, unit: string) => {
+    // Calculate nutritional values based on amount
+    const multiplier = unit === "г" ? amount / 100 : amount
+
+    const newEntry: FoodEntry = {
+      id: Date.now().toString(),
+      name: product.name,
+      calories: Math.round(product.calories * multiplier),
+      protein: Math.round(product.protein * multiplier * 10) / 10,
+      carbs: Math.round(product.carbs * multiplier * 10) / 10,
+      fat: Math.round(product.fat * multiplier * 10) / 10,
+      amount,
+      unit,
+      time: new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }),
+      meal: selectedMeal,
     }
+
+    setEntries([...entries, newEntry])
+    setOpenDialog(false)
+    setDialogTab(0)
+    setSearchTerm("")
   }
 
-  const getTotalNutrition = () => {
-    return meals.reduce(
-      (total, meal) => ({
-        calories: total.calories + meal.totalCalories,
-        protein: total.protein + meal.totalProtein,
-        fat: total.fat + meal.totalFat,
-        carbs: total.carbs + meal.totalCarbs,
+  const deleteEntry = (id: string) => {
+    setEntries(entries.filter((entry) => entry.id !== id))
+  }
+
+  const getMealEntries = (meal: string) => {
+    return entries.filter((entry) => entry.meal === meal)
+  }
+
+  const getMealTotals = (meal: string) => {
+    const mealEntries = getMealEntries(meal)
+    return mealEntries.reduce(
+      (totals, entry) => ({
+        calories: totals.calories + entry.calories,
+        protein: totals.protein + entry.protein,
+        carbs: totals.carbs + entry.carbs,
+        fat: totals.fat + entry.fat,
       }),
-      { calories: 0, protein: 0, fat: 0, carbs: 0 },
+      { calories: 0, protein: 0, carbs: 0, fat: 0 },
     )
   }
 
-  const totalNutrition = getTotalNutrition()
+  const getDayTotals = () => {
+    return entries.reduce(
+      (totals, entry) => ({
+        calories: totals.calories + entry.calories,
+        protein: totals.protein + entry.protein,
+        carbs: totals.carbs + entry.carbs,
+        fat: totals.fat + entry.fat,
+      }),
+      { calories: 0, protein: 0, carbs: 0, fat: 0 },
+    )
+  }
+
+  const meals = [
+    { id: "breakfast", name: "Завтрак", color: "#4CAF50" },
+    { id: "lunch", name: "Обед", color: "#2196F3" },
+    { id: "dinner", name: "Ужин", color: "#FF9800" },
+    { id: "snack", name: "Перекус", color: "#9C27B0" },
+  ]
+
+  const dayTotals = getDayTotals()
+
+  const filteredProducts = products.filter((product) => product.name.toLowerCase().includes(searchTerm.toLowerCase()))
+
+  const openAddDialog = (mealId: string) => {
+    setSelectedMeal(mealId)
+    setOpenDialog(true)
+  }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
-        <Toolbar>
-          <IconButton edge="start" color="inherit" onClick={() => router.push("/dashboard")}>
-            <ArrowBack />
-          </IconButton>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Дневник питания
+    <Container
+      maxWidth="xl"
+      sx={{
+        py: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 1, sm: 2, md: 3 },
+        position: "relative",
+      }}
+    >
+      {/* Date Navigation */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          mb: { xs: 2, sm: 3, md: 4 },
+          px: { xs: 0, sm: 1 },
+        }}
+      >
+        <IconButton onClick={() => changeDate(-1)} size={isMobile ? "medium" : "large"} sx={{ mr: { xs: 1, sm: 2 } }}>
+          <ChevronLeft />
+        </IconButton>
+        <Typography
+          variant="h5"
+          sx={{
+            mx: { xs: 1, sm: 2, md: 3 },
+            minWidth: { xs: 150, sm: 250, md: 300 },
+            textAlign: "center",
+            fontSize: { xs: "0.9rem", sm: "1.1rem", md: "1.25rem", lg: "1.5rem" },
+            fontWeight: 500,
+          }}
+        >
+          {formatDate(selectedDate)}
+        </Typography>
+        <IconButton onClick={() => changeDate(1)} size={isMobile ? "medium" : "large"} sx={{ ml: { xs: 1, sm: 2 } }}>
+          <ChevronRight />
+        </IconButton>
+      </Box>
+
+      {/* Day Summary */}
+      <Card sx={{ mb: { xs: 2, sm: 3, md: 4 }, background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" }}>
+        <CardContent sx={{ color: "white", p: { xs: 2, sm: 3, md: 4 } }}>
+          <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}>
+            Итого за день
           </Typography>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ marginTop: 4, marginBottom: 4 }}>
-        {/* Навигация по датам */}
-        <Paper sx={{ padding: 2, marginBottom: 3, borderRadius: 2 }}>
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <Button variant="outlined" onClick={() => setCurrentDate(subDays(currentDate, 1))} sx={{ minWidth: 100 }}>
-              Назад
-            </Button>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <CalendarToday color="primary" />
-              <Typography variant="h6">{format(currentDate, "d MMMM yyyy", { locale: ru })}</Typography>
-            </Box>
-
-            <Button variant="outlined" onClick={() => setCurrentDate(addDays(currentDate, 1))} sx={{ minWidth: 100 }}>
-              Вперед
-            </Button>
-          </Box>
-        </Paper>
-
-        <Grid container spacing={3}>
-          {/* Сводка за день */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: "fit-content", borderRadius: 2 }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Сводка за день
-                </Typography>
-
-                <Box sx={{ marginBottom: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                    <LocalFireDepartment color="error" sx={{ marginRight: 1 }} />
-                    <Typography variant="body2">Калории</Typography>
-                  </Box>
-                  <Typography variant="h5" color="error.main">
-                    {totalNutrition.calories} ккал
-                  </Typography>
-                </Box>
-
-                <Box sx={{ marginBottom: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                    <FitnessCenter color="primary" sx={{ marginRight: 1 }} />
-                    <Typography variant="body2">Белки</Typography>
-                  </Box>
-                  <Typography variant="h6" color="primary.main">
-                    {totalNutrition.protein.toFixed(1)} г
-                  </Typography>
-                </Box>
-
-                <Box sx={{ marginBottom: 2 }}>
-                  <Box sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                    <Opacity color="warning" sx={{ marginRight: 1 }} />
-                    <Typography variant="body2">Жиры</Typography>
-                  </Box>
-                  <Typography variant="h6" color="warning.main">
-                    {totalNutrition.fat.toFixed(1)} г
-                  </Typography>
-                </Box>
-
-                <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", marginBottom: 1 }}>
-                    <Grain color="success" sx={{ marginRight: 1 }} />
-                    <Typography variant="body2">Углеводы</Typography>
-                  </Box>
-                  <Typography variant="h6" color="success.main">
-                    {totalNutrition.carbs.toFixed(1)} г
-                  </Typography>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          {/* Список приемов пищи */}
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ padding: 3, borderRadius: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Приемы пищи
+          <Grid container spacing={{ xs: 1, sm: 2 }}>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2" sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" } }}>
+                Калории
               </Typography>
+              <Typography variant="h6" sx={{ fontSize: { xs: "0.9rem", sm: "1rem", md: "1.25rem" } }}>
+                {dayTotals.calories}
+              </Typography>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2" sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" } }}>
+                Белки
+              </Typography>
+              <Typography variant="h6" sx={{ fontSize: { xs: "0.9rem", sm: "1rem", md: "1.25rem" } }}>
+                {Math.round(dayTotals.protein * 10) / 10}г
+              </Typography>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2" sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" } }}>
+                Углеводы
+              </Typography>
+              <Typography variant="h6" sx={{ fontSize: { xs: "0.9rem", sm: "1rem", md: "1.25rem" } }}>
+                {Math.round(dayTotals.carbs * 10) / 10}г
+              </Typography>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Typography variant="body2" sx={{ fontSize: { xs: "0.7rem", sm: "0.8rem", md: "0.875rem" } }}>
+                Жиры
+              </Typography>
+              <Typography variant="h6" sx={{ fontSize: { xs: "0.9rem", sm: "1rem", md: "1.25rem" } }}>
+                {Math.round(dayTotals.fat * 10) / 10}г
+              </Typography>
+            </Grid>
+          </Grid>
+        </CardContent>
+      </Card>
 
-              {meals.length === 0 ? (
-                <Box sx={{ textAlign: "center", paddingY: 4 }}>
-                  <Restaurant sx={{ fontSize: 64, color: "text.secondary", marginBottom: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Нет записей за этот день
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Добавьте первый прием пищи
-                  </Typography>
-                </Box>
-              ) : (
-                <List>
-                  {meals.map((meal) => (
-                    <ListItem
-                      key={meal.id}
+      {/* Meals */}
+      <Grid container spacing={{ xs: 1.5, sm: 2, md: 3 }}>
+        {meals.map((meal) => {
+          const mealEntries = getMealEntries(meal.id)
+          const mealTotals = getMealTotals(meal.id)
+
+          return (
+            <Grid item xs={12} lg={6} key={meal.id}>
+              <Card sx={{ height: { xs: "auto", lg: "100%" } }}>
+                <CardContent sx={{ p: { xs: 2, sm: 2.5, md: 3 } }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      mb: 2,
+                      flexDirection: { xs: "column", sm: "row" },
+                      gap: { xs: 1, sm: 0 },
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      <Restaurant sx={{ color: meal.color, mr: 1, fontSize: { xs: 20, sm: 24 } }} />
+                      <Typography variant="h6" sx={{ fontSize: { xs: "1rem", sm: "1.1rem", md: "1.25rem" } }}>
+                        {meal.name}
+                      </Typography>
+                    </Box>
+                    {!isMobile && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        startIcon={<Add />}
+                        onClick={() => openAddDialog(meal.id)}
+                        sx={{
+                          width: { xs: "100%", sm: "auto" },
+                          fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                        }}
+                      >
+                        Добавить
+                      </Button>
+                    )}
+                  </Box>
+
+                  {mealEntries.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Grid container spacing={{ xs: 0.5, sm: 1 }}>
+                        <Grid item xs={6} sm={3}>
+                          <Chip
+                            label={`${mealTotals.calories} ккал`}
+                            size="small"
+                            sx={{
+                              width: "100%",
+                              fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" },
+                              height: { xs: 24, sm: 32 },
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Chip
+                            label={`Б: ${Math.round(mealTotals.protein * 10) / 10}г`}
+                            size="small"
+                            sx={{
+                              width: "100%",
+                              fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" },
+                              height: { xs: 24, sm: 32 },
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Chip
+                            label={`У: ${Math.round(mealTotals.carbs * 10) / 10}г`}
+                            size="small"
+                            sx={{
+                              width: "100%",
+                              fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" },
+                              height: { xs: 24, sm: 32 },
+                            }}
+                          />
+                        </Grid>
+                        <Grid item xs={6} sm={3}>
+                          <Chip
+                            label={`Ж: ${Math.round(mealTotals.fat * 10) / 10}г`}
+                            size="small"
+                            sx={{
+                              width: "100%",
+                              fontSize: { xs: "0.65rem", sm: "0.7rem", md: "0.75rem" },
+                              height: { xs: 24, sm: 32 },
+                            }}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  )}
+
+                  <List dense>
+                    {mealEntries.map((entry) => (
+                      <ListItem key={entry.id} divider sx={{ px: 0 }}>
+                        <ListItemText
+                          primary={
+                            <Typography sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}>{entry.name}</Typography>
+                          }
+                          secondary={
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                component="span"
+                                sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+                              >
+                                {entry.amount}
+                                {entry.unit} • {entry.calories} ккал
+                              </Typography>
+                              <Box sx={{ display: "flex", alignItems: "center", mt: 0.5 }}>
+                                <AccessTime sx={{ fontSize: { xs: 12, sm: 14 }, mr: 0.5 }} />
+                                <Typography variant="caption" sx={{ fontSize: { xs: "0.7rem", sm: "0.75rem" } }}>
+                                  {entry.time}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          }
+                        />
+                        <ListItemSecondaryAction>
+                          <IconButton edge="end" size="small" onClick={() => deleteEntry(entry.id)}>
+                            <Delete sx={{ fontSize: { xs: 18, sm: 20 } }} />
+                          </IconButton>
+                        </ListItemSecondaryAction>
+                      </ListItem>
+                    ))}
+                    {mealEntries.length === 0 && (
+                      <ListItem sx={{ px: 0 }}>
+                        <ListItemText
+                          primary={
+                            <Typography sx={{ fontSize: { xs: "0.875rem", sm: "1rem" } }}>Нет записей</Typography>
+                          }
+                          secondary={
+                            <Typography sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                              Добавьте продукты в этот прием пищи
+                            </Typography>
+                          }
+                        />
+                      </ListItem>
+                    )}
+                  </List>
+
+                  {isMobile && (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Add />}
+                      onClick={() => openAddDialog(meal.id)}
                       sx={{
-                        marginBottom: 2,
-                        backgroundColor: "background.paper",
-                        borderRadius: 2,
-                        border: 1,
-                        borderColor: "divider",
-                        "&:hover": { backgroundColor: "action.hover" },
+                        width: "100%",
+                        mt: 1,
+                        fontSize: "0.75rem",
                       }}
                     >
-                      <ListItemIcon>
-                        <Restaurant color="primary" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                            <Typography variant="h6" component="span">
-                              {meal.name}
-                            </Typography>
-                            <Box sx={{ display: "flex", gap: 1 }}>
-                              <Chip
-                                label={`${meal.totalCalories} ккал`}
-                                color="error"
-                                variant="outlined"
-                                size="small"
-                              />
-                              <Typography variant="body2" color="text.secondary" component="span">
-                                {meal.time}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        }
-                        secondary={
-                          <Box sx={{ marginTop: 1 }}>
-                            {meal.foods.length > 0 ? (
-                              <Box>
-                                <Typography variant="body2" color="text.secondary" component="div">
-                                  {meal.foods.map((food) => food.name).join(", ")}
-                                </Typography>
-                                <Box sx={{ display: "flex", gap: 2, marginTop: 1 }}>
-                                  <Typography variant="caption" component="span">
-                                    Б: {meal.totalProtein.toFixed(1)}г
-                                  </Typography>
-                                  <Typography variant="caption" component="span">
-                                    Ж: {meal.totalFat.toFixed(1)}г
-                                  </Typography>
-                                  <Typography variant="caption" component="span">
-                                    У: {meal.totalCarbs.toFixed(1)}г
-                                  </Typography>
-                                </Box>
-                              </Box>
-                            ) : (
-                              <Typography variant="body2" color="text.secondary" component="div">
-                                Нет продуктов
-                              </Typography>
-                            )}
-                          </Box>
-                        }
-                      />
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <IconButton size="small" onClick={() => router.push(`/diary/meal/${meal.id}`)} color="primary">
-                          <Edit />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            setMeals(meals.filter((m) => m.id !== meal.id))
+                      Добавить в {meal.name.toLowerCase()}
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            </Grid>
+          )
+        })}
+      </Grid>
+
+      {/* Add Food Dialog */}
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        maxWidth="md"
+        fullWidth
+        fullScreen={isMobile}
+        sx={{
+          "& .MuiDialog-paper": {
+            m: { xs: 0, sm: 2 },
+            height: { xs: "100%", sm: "auto" },
+            maxHeight: { xs: "100%", sm: "90vh" },
+          },
+        }}
+      >
+        <DialogTitle sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>Добавить продукт</DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+            <Tabs value={dialogTab} onChange={(_, newValue) => setDialogTab(newValue)}>
+              <Tab label="Из базы продуктов" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }} />
+              <Tab label="Новый продукт" sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }} />
+            </Tabs>
+          </Box>
+
+          {dialogTab === 0 ? (
+            // Products from database
+            <Box>
+              <TextField
+                fullWidth
+                placeholder="Поиск продуктов..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ mb: 3 }}
+                size={isMobile ? "small" : "medium"}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              <Grid container spacing={2}>
+                {filteredProducts.map((product) => (
+                  <Grid item xs={12} key={product.id}>
+                    <Card sx={{ "&:hover": { boxShadow: 2 } }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            flexDirection: { xs: "column", sm: "row" },
+                            gap: { xs: 2, sm: 1 },
                           }}
-                          color="error"
                         >
-                          <Delete />
-                        </IconButton>
-                      </Box>
-                    </ListItem>
-                  ))}
-                </List>
+                          <Box sx={{ flex: 1, width: { xs: "100%", sm: "auto" } }}>
+                            <Typography variant="h6" sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, fontWeight: 600 }}>
+                              {product.name}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="text.secondary"
+                              sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+                            >
+                              {product.calories} ккал • Б: {product.protein}г • У: {product.carbs}г • Ж: {product.fat}г
+                              (на 100г)
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 1,
+                              alignItems: "center",
+                              width: { xs: "100%", sm: "auto" },
+                              flexDirection: { xs: "row", sm: "row" },
+                            }}
+                          >
+                            <TextField
+                              size="small"
+                              label="Количество"
+                              type="number"
+                              defaultValue={100}
+                              sx={{ width: { xs: "100px", sm: "100px" } }}
+                              id={`amount-${product.id}`}
+                            />
+                            <FormControl size="small" sx={{ width: { xs: "80px", sm: "80px" } }}>
+                              <InputLabel>Ед.</InputLabel>
+                              <Select defaultValue="г" label="Ед." id={`unit-${product.id}`}>
+                                <MenuItem value="г">г</MenuItem>
+                                <MenuItem value="мл">мл</MenuItem>
+                                <MenuItem value="шт">шт</MenuItem>
+                              </Select>
+                            </FormControl>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              sx={{
+                                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                                minWidth: { xs: "80px", sm: "auto" },
+                              }}
+                              onClick={() => {
+                                const amountInput = document.getElementById(`amount-${product.id}`) as HTMLInputElement
+                                const unitSelect = document.getElementById(`unit-${product.id}`) as HTMLInputElement
+                                const amount = Number.parseFloat(amountInput.value) || 100
+                                const unit = unitSelect.value || "г"
+                                addProductFromDatabase(product, amount, unit)
+                              }}
+                            >
+                              Добавить
+                            </Button>
+                          </Box>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {filteredProducts.length === 0 && (
+                <Box sx={{ textAlign: "center", py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    Продукты не найдены
+                  </Typography>
+                </Box>
               )}
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Кнопка добавления приема пищи */}
-        <Fab
-          color="primary"
-          aria-label="add meal"
-          sx={{
-            position: "fixed",
-            bottom: 16,
-            right: 16,
-          }}
-          onClick={() => setOpenDialog(true)}
-        >
-          <Add />
-        </Fab>
-
-        {/* Диалог добавления приема пищи */}
-        <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>Добавить прием пищи</DialogTitle>
-          <DialogContent>
-            <TextField
-              select
-              label="Тип приема пищи"
-              value={selectedMealType}
-              onChange={(e) => handleMealTypeChange(e.target.value)}
-              fullWidth
-              margin="normal"
-            >
-              {mealTypes.map((type) => (
-                <MenuItem key={type.value} value={type.value}>
-                  {type.label}
-                </MenuItem>
-              ))}
-            </TextField>
-
-            <TextField
-              label="Название"
-              value={newMealName}
-              onChange={(e) => setNewMealName(e.target.value)}
-              fullWidth
-              margin="normal"
-            />
-
-            <TextField
-              label="Время"
-              type="time"
-              value={newMealTime}
-              onChange={(e) => setNewMealTime(e.target.value)}
-              fullWidth
-              margin="normal"
-              InputLabelProps={{
-                shrink: true,
-              }}
-            />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setOpenDialog(false)}>Отмена</Button>
-            <Button onClick={handleAddMeal} variant="contained">
+            </Box>
+          ) : (
+            // Manual product entry
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Название продукта"
+                    size={isMobile ? "small" : "medium"}
+                    {...register("name", { required: "Название обязательно" })}
+                    error={!!errors.name}
+                    helperText={errors.name?.message}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Количество"
+                    type="number"
+                    size={isMobile ? "small" : "medium"}
+                    {...register("amount", { required: "Количество обязательно" })}
+                    error={!!errors.amount}
+                    helperText={errors.amount?.message}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+                    <InputLabel>Единица</InputLabel>
+                    <Select
+                      label="Единица"
+                      {...register("unit", { required: "Единица обязательна" })}
+                      error={!!errors.unit}
+                    >
+                      <MenuItem value="г">граммы</MenuItem>
+                      <MenuItem value="мл">миллилитры</MenuItem>
+                      <MenuItem value="шт">штуки</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    fullWidth
+                    label="Калории"
+                    type="number"
+                    size={isMobile ? "small" : "medium"}
+                    {...register("calories", { required: "Калории обязательны" })}
+                    error={!!errors.calories}
+                    helperText={errors.calories?.message}
+                  />
+                </Grid>
+                <Grid item xs={6}>
+                  <FormControl fullWidth size={isMobile ? "small" : "medium"}>
+                    <InputLabel>Прием пищи</InputLabel>
+                    <Select
+                      label="Прием пищи"
+                      value={selectedMeal}
+                      {...register("meal", { required: "Прием пищи обязателен" })}
+                      error={!!errors.meal}
+                    >
+                      {meals.map((meal) => (
+                        <MenuItem key={meal.id} value={meal.id}>
+                          {meal.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Белки (г)"
+                    type="number"
+                    size={isMobile ? "small" : "medium"}
+                    {...register("protein", { required: "Белки обязательны" })}
+                    error={!!errors.protein}
+                    helperText={errors.protein?.message}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Углеводы (г)"
+                    type="number"
+                    size={isMobile ? "small" : "medium"}
+                    {...register("carbs", { required: "Углеводы обязательны" })}
+                    error={!!errors.carbs}
+                    helperText={errors.carbs?.message}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    fullWidth
+                    label="Жиры (г)"
+                    type="number"
+                    size={isMobile ? "small" : "medium"}
+                    {...register("fat", { required: "Жиры обязательны" })}
+                    error={!!errors.fat}
+                    helperText={errors.fat?.message}
+                  />
+                </Grid>
+              </Grid>
+            </form>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: { xs: 2, sm: 3 }, pb: { xs: 2, sm: 3 } }}>
+          <Button onClick={() => setOpenDialog(false)} size={isMobile ? "small" : "medium"}>
+            Отмена
+          </Button>
+          {dialogTab === 1 && (
+            <Button onClick={handleSubmit(onSubmit)} variant="contained" size={isMobile ? "small" : "medium"}>
               Добавить
             </Button>
-          </DialogActions>
-        </Dialog>
-      </Container>
-    </Box>
+          )}
+        </DialogActions>
+      </Dialog>
+    </Container>
   )
 }

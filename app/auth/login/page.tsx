@@ -2,32 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Container, Paper, TextField, Button, Typography, Box, Alert, Link as MuiLink, Divider } from "@mui/material"
+import { Restaurant, Visibility, VisibilityOff } from "@mui/icons-material"
 import Link from "next/link"
-import {
-  Container,
-  Box,
-  Typography,
-  TextField,
-  Button,
-  Paper,
-  InputAdornment,
-  IconButton,
-  Divider,
-  Alert,
-  CircularProgress,
-} from "@mui/material"
-import { Visibility, VisibilityOff, Email, Lock } from "@mui/icons-material"
-import { useForm, Controller } from "react-hook-form"
-import { yupResolver } from "@hookform/resolvers/yup"
-import * as yup from "yup"
+import { useForm } from "react-hook-form"
 
-// Схема валидации
-const schema = yup.object({
-  email: yup.string().email("Введите корректный email").required("Email обязателен"),
-  password: yup.string().required("Пароль обязателен").min(6, "Пароль должен содержать минимум 6 символов"),
-})
-
-type FormData = {
+interface LoginForm {
   email: string
   password: string
 }
@@ -35,193 +15,145 @@ type FormData = {
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
 
   const {
-    control,
+    register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: yupResolver(schema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  })
+  } = useForm<LoginForm>()
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: LoginForm) => {
     setLoading(true)
-    setError(null)
+    setError("")
 
     try {
-      // Имитация запроса к API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Проверка тестовых данных
-      if (data.email === "user@example.com" && data.password === "password123") {
-        // Сохраняем токен в localStorage (в реальном приложении использовали бы более безопасный способ)
-        localStorage.setItem("authToken", "fake-jwt-token")
-        localStorage.setItem("user", JSON.stringify({ email: data.email, name: "Иван Иванов", role: "user" }))
-
-        // Перенаправляем на дашборд
-        router.push("/dashboard")
+      // Mock authentication
+      if (data.email === "user@example.com" && data.password === "password") {
+        localStorage.setItem("authToken", "mock-jwt-token")
+        router.push("/")
       } else {
         setError("Неверный email или пароль")
       }
     } catch (err) {
-      setError("Произошла ошибка при входе. Попробуйте позже.")
-      console.error(err)
+      setError("Произошла ошибка при входе")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Container maxWidth="sm">
+    <Container component="main" maxWidth="sm">
       <Box
         sx={{
+          minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
           justifyContent: "center",
-          minHeight: "100vh",
-          paddingY: 4,
+          py: 4,
         }}
       >
         <Paper
           elevation={3}
           sx={{
-            padding: 4,
-            width: "100%",
-            borderRadius: 2,
+            p: 4,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            borderRadius: 3,
           }}
         >
-          <Typography variant="h4" component="h1" align="center" gutterBottom>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+            <Restaurant sx={{ fontSize: 40, color: "primary.main", mr: 1 }} />
+            <Typography component="h1" variant="h4" sx={{ fontWeight: 600 }}>
+              CalorieTracker
+            </Typography>
+          </Box>
+
+          <Typography component="h2" variant="h5" sx={{ mb: 3, textAlign: "center" }}>
             Вход в систему
           </Typography>
 
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ marginBottom: 3 }}>
-            Введите свои данные для доступа к приложению
-          </Typography>
-
           {error && (
-            <Alert severity="error" sx={{ marginBottom: 2 }}>
+            <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
               {error}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <Controller
-              name="email"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Email"
-                  variant="outlined"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.email}
-                  helperText={errors.email?.message}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Email color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={loading}
-                />
-              )}
-            />
-
-            <Controller
-              name="password"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  label="Пароль"
-                  type={showPassword ? "text" : "password"}
-                  variant="outlined"
-                  fullWidth
-                  margin="normal"
-                  error={!!errors.password}
-                  helperText={errors.password?.message}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Lock color="action" />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  disabled={loading}
-                />
-              )}
-            />
-
-            <Box sx={{ textAlign: "right", marginTop: 1, marginBottom: 2 }}>
-              <Link href="/auth/forgot-password" style={{ color: "#2196f3", textDecoration: "none" }}>
-                Забыли пароль?
-              </Link>
-            </Box>
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
+          <Box component="form" onSubmit={handleSubmit(onSubmit)} sx={{ width: "100%" }}>
+            <TextField
+              margin="normal"
+              required
               fullWidth
-              size="large"
-              disabled={loading}
-              sx={{ marginTop: 2, marginBottom: 2, paddingY: 1.5 }}
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : "Войти"}
+              id="email"
+              label="Email"
+              type="email"
+              autoComplete="email"
+              autoFocus
+              {...register("email", {
+                required: "Email обязателен",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Неверный формат email",
+                },
+              })}
+              error={!!errors.email}
+              helperText={errors.email?.message}
+            />
+
+            <TextField
+              margin="normal"
+              required
+              fullWidth
+              label="Пароль"
+              type={showPassword ? "text" : "password"}
+              id="password"
+              autoComplete="current-password"
+              {...register("password", {
+                required: "Пароль обязателен",
+                minLength: {
+                  value: 6,
+                  message: "Пароль должен содержать минимум 6 символов",
+                },
+              })}
+              error={!!errors.password}
+              helperText={errors.password?.message}
+              InputProps={{
+                endAdornment: (
+                  <Button onClick={() => setShowPassword(!showPassword)} sx={{ minWidth: "auto", p: 1 }}>
+                    {showPassword ? <VisibilityOff /> : <Visibility />}
+                  </Button>
+                ),
+              }}
+            />
+
+            <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2, py: 1.5 }} disabled={loading}>
+              {loading ? "Вход..." : "Войти"}
             </Button>
 
-            <Divider sx={{ marginY: 2 }}>
-              <Typography variant="body2" color="text.secondary">
-                или
-              </Typography>
-            </Divider>
+            <Divider sx={{ my: 2 }} />
 
-            <Box sx={{ textAlign: "center", marginTop: 2 }}>
-              <Typography variant="body2">
-                Еще нет аккаунта?{" "}
-                <Link href="/auth/register" style={{ color: "#2196f3", textDecoration: "none" }}>
+            <Box sx={{ textAlign: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                Нет аккаунта?{" "}
+                <MuiLink component={Link} href="/auth/register" underline="hover">
                   Зарегистрироваться
-                </Link>
+                </MuiLink>
               </Typography>
             </Box>
-          </form>
+          </Box>
 
-          <Box sx={{ marginTop: 3, padding: 2, backgroundColor: "#f5f5f5", borderRadius: 1 }}>
-            <Typography variant="caption" display="block" align="center">
-              Тестовые данные для входа:
-            </Typography>
-            <Typography variant="caption" display="block" align="center">
+          <Box sx={{ mt: 3, p: 2, bgcolor: "grey.50", borderRadius: 2, width: "100%" }}>
+            <Typography variant="body2" color="text.secondary" sx={{ textAlign: "center" }}>
+              <strong>Демо-доступ:</strong>
+              <br />
               Email: user@example.com
-            </Typography>
-            <Typography variant="caption" display="block" align="center">
-              Пароль: password123
+              <br />
+              Пароль: password
             </Typography>
           </Box>
         </Paper>
-
-        <Button variant="text" color="inherit" onClick={() => router.push("/")} sx={{ marginTop: 2 }}>
-          Вернуться на главную
-        </Button>
       </Box>
     </Container>
   )
